@@ -62,4 +62,4 @@ Contributions to this backend are welcome. Please ensure your contributions alig
 
 ## License
 
-This project is licensed under the MIT license.
+This project is licensed under the LGPLv3 license.
