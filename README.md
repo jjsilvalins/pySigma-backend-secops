@@ -1,4 +1,12 @@
-# pySigma Google SecOps (Chronicle) Backend
+# pySigma Google SecOps (Chronicle) Backend (Alpha)
+
+![Tests](https://github.com/AttackIQ/pySigma-backend-secops/actions/workflows/test.yml/badge.svg)
+![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/slincoln-aiq/f9db5eaebc0a30cde8045bea889df922/raw/slincoln-aiq-pySigma-backend-secops.json)
+![Status](https://img.shields.io/badge/Status-pre--release-orange)
+![PyPI version](https://badge.fury.io/py/pysigma-backend-secops.svg)
+![Python versions](https://img.shields.io/pypi/pyversions/pysigma-backend-secops.svg)
+![pySigma version](https://img.shields.io/badge/pySigma-%3E%3D0.11.0-blue)
+![License](https://img.shields.io/github/license/AttackIQ/pySigma-backend-secops.svg)
 
 This is the Google SecOps (formerly Chronicle) backend for pySigma. It provides the package `sigma.backends.secops` with the `SecOpsBackend` class.
 Further, it contains the following processing pipelines in `sigma.pipelines.secops`:
@@ -11,6 +19,8 @@ It supports the following output formats:
 
 * default: Plain Google SecOps queries
 * yara: YARA-L v2.0 output format ( In progress )
+
+**This backend is currently in development and not yet complete.**
 
 ## Usage
 
