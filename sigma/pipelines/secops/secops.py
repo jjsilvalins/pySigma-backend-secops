@@ -1,17 +1,19 @@
 import json
 from importlib import resources
 
-from sigma.processing.conditions import DetectionItemProcessingItemAppliedCondition
+from sigma.processing.conditions import DetectionItemProcessingItemAppliedCondition, IncludeFieldCondition
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
 from sigma.processing.transformations import (
     FieldMappingTransformation,
 )
 
-from .mappings import get_common_mappings
+from .mappings import get_common_mappings, enum_mappings
 from .transformations import (
+    ConvertEnumValueTransformation,
     EnsureValidUDMFieldsTransformation,
     EventTypeFieldMappingTransformation,
     SetRuleEventTypeTransformation,
+    
 )
 
 # LOAD UDM SCHEMA
@@ -43,6 +45,13 @@ common_field_mappings_proc_item = ProcessingItem(
     detection_item_condition_negation=True,
 )
 
+## CONVERT ENUM VALUES IF POSSIBLE
+
+convert_enum_values_proc_item = ProcessingItem(
+    identifier="secops_convert_enum_values",
+    transformation=ConvertEnumValueTransformation(),
+    field_name_conditions=[IncludeFieldCondition(list(enum_mappings.keys())),],
+)
 
 # UDM VALIDATION
 
@@ -50,6 +59,7 @@ udm_validation_proc_item = ProcessingItem(
     identifier="secops_udm_validation",
     transformation=EnsureValidUDMFieldsTransformation(udm_schema),
 )
+
 
 
 def secops_udm_pipeline() -> ProcessingPipeline:
@@ -61,6 +71,7 @@ def secops_udm_pipeline() -> ProcessingPipeline:
             event_type_field_mapping_proc_item,
             common_field_mappings_proc_item,
             udm_validation_proc_item,
+            convert_enum_values_proc_item,
             # ProcessingItem(
             #    identifier="map_windows_event_ids",
             #    transformation=MapStringTransformation(mapping=get_windows_event_id_mapping()),

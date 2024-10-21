@@ -2,9 +2,13 @@ from functools import lru_cache
 from typing import Dict
 
 
+# TODO: EventType field in sysmon logs, ensure value is valid for metadata.event_type
+# TODO: Add mappings/transformations for LogonType to Authentication.Mechanism enum conversion for logon events
+
 @lru_cache(maxsize=128)
 def get_common_mappings() -> Dict[str, str]:
     return {
+        "AccessMask": "target.process.access_mask",
         "User": "principal.user.userid",
         "SourceHostname": "principal.hostname",
         "DestinationHostname": "target.hostname",
@@ -13,21 +17,16 @@ def get_common_mappings() -> Dict[str, str]:
         "EventLog": "metadata.log_type",
         "Channel": "metadata.log_type",
         "Provider_Name": "metadata.product_name",
-        "ServiceName": "target.process.name",
+        "ServiceName": "target.process.file.names",
         "ServiceFileName": "target.process.file.full_path",
         "AccountName": "principal.user.user_display_name",
         "SubjectUserName": "principal.user.user_display_name",
-        "SubjectDomainName": "principal.user.user_domain",
-        "SubjectLogonId": "principal.user.session_id",
+        "SubjectDomainName": "principal.domain.name",
         "TargetUserName": "target.user.userid",
-        "TargetDomainName": "target.user.user_domain",
-        "TargetLogonId": "target.user.session_id",
+        "TargetDomainName": "target.domain.name",
         "IpAddress": "principal.ip",
         "IpPort": "principal.port",
         "WorkstationName": "principal.hostname",
-        "Status": "metadata.status",
-        "Severity": "metadata.severity",
-        "Category": "metadata.event_category",
         "Hostname": "target.hostname",
         "ComputerName": "target.hostname",
     }
@@ -37,23 +36,20 @@ def get_common_mappings() -> Dict[str, str]:
 def get_process_mappings() -> Dict[str, str]:
     return {
         "CommandLine": "target.process.command_line",
+        "CurrentDirectory": "target.process.file.full_path",
         "Image": "target.process.file.full_path",
+        "OriginalFileName": "target.process.file.names",  # Not sure if correct, but it's the file name without the path
         "ParentImage": "principal.process.file.full_path",
         "ParentCommandLine": "principal.process.command_line",
+        "ProcessGuid": "target.process.product_specific_process_id",
         "ProcessId": "target.process.pid",
+        "ParentProcessImage": "principal.process.file.full_path",
+        "ParentProcessCommandLine": "principal.process.command_line",
         "ParentProcessId": "principal.process.pid",
-        "IntegrityLevel": "target.process.integrity_level",
-        "Hashes": "target.process.file.hash",
-        "CurrentDirectory": "target.process.cwd",
-        "Product": "target.process.file.pe.product",
-        "Description": "target.process.file.pe.file_description",
-        "Company": "target.process.file.pe.company",
-        "FileVersion": "target.process.file.pe.file_version",
-        "User": "target.user.userid",
-        "LogonId": "target.user.session_id",
-        "TerminalSessionId": "target.user.terminal_session_id",
-        "CallTrace": "target.process.call_trace",
+        "ParentProcessGuid": "principal.process.product_specific_process_id",
         "ParentUser": "principal.user.userid",
+        "IntegrityLevel": "target.process.integrity_level_rid",
+        "User": "target.user.userid",
     }
 
 
@@ -65,11 +61,9 @@ def get_network_mappings() -> Dict[str, str]:
         "SourcePort": "principal.port",
         "DestinationPort": "target.port",
         "Protocol": "network.ip_protocol",
-        "Image": "network.application",
+        "Image": "principal.process.file.full_path",
         "Initiated": "network.direction",
-        "SourceIsIpv6": "principal.ip_is_ipv6",
-        "DestinationIsIpv6": "target.ip_is_ipv6",
-        "User": "principal.ip_user_info.userid",
+        "User": "principal.user.userid",
         "DestinationHostname": "target.hostname",
         "SourceHostname": "principal.hostname",
         "QueryName": "network.dns.questions.name",
@@ -81,40 +75,27 @@ def get_network_mappings() -> Dict[str, str]:
 @lru_cache(maxsize=128)
 def get_file_mappings() -> Dict[str, str]:
     return {
-        "TargetFilename": "target.file.full_path",
-        "Image": "principal.process.file.full_path",
+        "TargetFilename": "target.file.names",
+        "Image": "target.process.file.full_path",
         "ObjectName": "target.file.full_path",
-        "AccessMask": "target.file.access_mask",
-        "CreationUtcTime": "target.file.creation_time",
-        "PreviousCreationUtcTime": "target.file.previous_creation_time",
-        "Contents": "target.file.content",
-        "Hash": "target.file.hash",
-        "OldName": "target.file.previous_full_path",
-        "NewName": "target.file.full_path",
-        "FileVersion": "target.file.pe.file_version",
-        "Description": "target.file.pe.file_description",
-        "Product": "target.file.pe.product",
-        "Company": "target.file.pe.company",
-        "OriginalFileName": "target.file.pe.original_file_name",
+        "OldName": "target.file.names",
+        "NewName": "target.file.names",
+        "OriginalFileName": "target.file.names",
     }
 
 
 @lru_cache(maxsize=128)
 def get_authentication_mappings() -> Dict[str, str]:
     return {
-        "LogonType": "principal.authentication.auth_type",
-        "AuthenticationPackageName": "principal.authentication.auth_protocol",
         "TargetUserName": "target.user.userid",
         "SubjectUserName": "principal.user.user_display_name",
         "TargetOutboundUserName": "target.user.userid",
-        "TargetUserSid": "target.user.user_uid",
+        "TargetUserSid": "target.user.windows_sid",
         "TargetServerName": "target.hostname",
-        "LogonProcessName": "principal.authentication.auth_service",
         "WorkstationName": "principal.hostname",
         "IpAddress": "principal.ip",
         "IpPort": "principal.port",
-        "TargetInfo": "target.user.group_info",
-        "LogonGuid": "principal.authentication.session_id",
+        "LogonGuid": "principal.user.product_object_id",
     }
 
 
@@ -122,14 +103,14 @@ def get_authentication_mappings() -> Dict[str, str]:
 def get_registry_mappings() -> Dict[str, str]:
     return {
         "TargetObject": "target.registry.registry_key",
-        "Details": "target.registry.registry_value",
+        "Details": "target.registry.registry_value_data",
         "EventType": "metadata.event_type",
         "Image": "principal.process.file.full_path",
         "ProcessId": "principal.process.pid",
         "User": "principal.user.userid",
         "ObjectName": "target.registry.registry_key",
         "ObjectValueName": "target.registry.registry_value_name",
-        "NewName": "target.registry.new_registry_key",
+        "NewName": "target.registry.registry_key",
     }
 
 
@@ -158,3 +139,14 @@ def get_field_mapping(event_type: str) -> Dict[str, str]:
     mappings = {**event_type_mappings.get(event_type, {})}
 
     return mappings
+
+
+enum_mappings = {
+    "network.direction": {  # From Initiated sysmon field
+        "Inbound": "INBOUND",
+        "Outbound": "OUTBOUND",
+        "Broadcast": "BROADCAST",
+        "true": "OUTBOUND",
+        "false": "INBOUND",
+    }
+}
