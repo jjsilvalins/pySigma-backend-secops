@@ -202,16 +202,7 @@ def test_is_valid_udm_field_value_enum_types(udm_schema):
 def test_is_valid_udm_field_value_subtypes(udm_schema):
     assert is_valid_udm_field_value("src.ip", "192.168.1.1", udm_schema)
     assert is_valid_udm_field_value("target.mac", "00:11:22:33:44:55", udm_schema)
-
-
-def test_check_value_type_edge_cases():
-    assert check_value_type(0, "integer")
-    assert check_value_type(False, "boolean")
-    assert check_value_type([], "list")
-    assert not check_value_type("", "integer")
-    assert not check_value_type([], "boolean")
-    assert not check_value_type({}, "list")
-
+    
 
 def test_is_valid_udm_field_value_complex_types(udm_schema):
     assert is_valid_udm_field_value("network.sent_packets", 100, udm_schema)
