@@ -20,6 +20,9 @@ def is_valid_udm_field(field_path: str, udm_schema: dict) -> bool:
     # Start traversal
     current_level = None
 
+    # Check if part[0] in GroupedFields
+    if len(parts) == 1 and parts[0] in udm_schema["GroupedFields"]:
+        return True
     # Check if the first part is a noun
     if parts[0] in udm_schema["Nouns"]:
         current_level = udm_schema["TopLevelFields"]["noun"]
@@ -132,33 +135,3 @@ def check_value_type(value, expected_type):
         return isinstance(value, list)
     else:
         return True  # For unknown types, assume it's valid
-
-
-if __name__ == "__main__":
-    # Load the UDM schema
-    with open("udm_field_list_v3.json", "r", encoding="utf-8") as f:
-        udm_schema = json.load(f)
-
-    # Test cases
-    test_cases = [
-        ("security_result.alert_state", "ALERTING"),
-        ("security_result.alert_state", "INVALID_STATE"),
-        ("metadata.event_type", "PROCESS_LAUNCH"),
-        ("metadata.event_type", "INVALID_EVENT_TYPE"),
-        ("target.process.file.name", "example.exe"),
-        ("target.process.file.full_path", "/path/to/example.exe"),
-        ("network.application_protocol", "HTTP"),
-        ("invalid.field.path", "some_value"),
-        ("target.asset.hostname", "server01"),
-        ("src.ip", "192.168.1.1"),
-        ("principal.user.userid", "john.doe"),
-    ]
-
-    for field, value in test_cases:
-        print(f"\nTesting field: {field} with value: {value}")
-        is_valid = is_valid_udm_field(field, udm_schema)
-        print(f"Field '{field}' is {'valid' if is_valid else 'invalid'}.")
-
-        if is_valid:
-            is_valid_value = is_valid_udm_field_value(field, value, udm_schema)
-            print(f"Value '{value}' for field '{field}' is {'valid' if is_valid_value else 'invalid'}.")

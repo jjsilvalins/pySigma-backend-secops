@@ -1,6 +1,6 @@
 import json
 import pytest
-from sigma.pipelines.secops.mappings import get_common_mappings, get_field_mapping
+from sigma.pipelines.secops.mappings import get_field_mappings
 from sigma.pipelines.secops.validators import (
     check_value_type,
     is_valid_udm_field,
@@ -221,12 +221,12 @@ def test_network_packet_fields_exist(udm_schema):
     "process", "network", "file", "authentication", "registry", "dns"
 ])
 def test_event_type_field_mappings_validity(event_type, udm_schema):
-    mappings = get_field_mapping(event_type)
+    mappings = get_field_mappings().get(event_type)
     
     for sigma_field, udm_field in mappings.items():
         assert is_valid_udm_field(udm_field, udm_schema), f"Invalid UDM field '{udm_field}' for Sigma field '{sigma_field}' in event type '{event_type}'"
 
 def test_common_field_mappings_validity(udm_schema):
-    mappings = get_common_mappings()
+    mappings = get_field_mappings().get('common')
     for sigma_field, udm_field in mappings.items():
         assert is_valid_udm_field(udm_field, udm_schema), f"Invalid UDM field '{udm_field}' for Sigma field '{sigma_field}' in event type 'common'"

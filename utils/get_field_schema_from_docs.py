@@ -5,6 +5,103 @@ import requests
 from bs4 import BeautifulSoup
 
 
+def add_grouped_fields() -> dict:
+    """Returns dictionary of grouped fields and the fields that are in each group"""
+    return {
+        "domain": [
+            "about.administrative_domain",
+            "about.asset.network_domain",
+            "network.dns.questions.name",
+            "network.dns_domain",
+            "principal.administrative_domain",
+            "principal.asset.network_domain",
+            "target.administrative_domain",
+            "target.asset.hostname",
+            "target.asset.network_domain",
+            "target.hostname",
+        ],
+        "email": [
+            "intermediary.user.email_addresses",
+            "network.email.from",
+            "network.email.to",
+            "principal.user.email_addresses",
+            "security_result.about.user.email_addresses",
+            "target.user.email_addresses",
+        ],
+        "file_path": [
+            "principal.file.full_path",
+            "principal.process.file.full_path",
+            "principal.process.parent_process.file.full_path",
+            "target.file.full_path",
+            "target.process.file.full_path",
+            "target.process.parent_process.file.full_path",
+        ],
+        "hash": [
+            "about.file.md5",
+            "about.file.sha1",
+            "about.file.sha256",
+            "principal.process.file.md5",
+            "principal.process.file.sha1",
+            "principal.process.file.sha256",
+            "security_result.about.file.sha256",
+            "target.file.md5",
+            "target.file.sha1",
+            "target.file.sha256",
+            "target.process.file.md5",
+            "target.process.file.sha1",
+        ],
+        "hostname": [
+            "intermediary.hostname",
+            "observer.hostname",
+            "principal.asset.hostname",
+            "principal.hostname",
+            "src.asset.hostname",
+            "src.hostname",
+            "target.asset.hostname",
+            "target.hostname",
+        ],
+        "ip": [
+            "intermediary.ip",
+            "observer.ip",
+            "principal.artifact.ip",
+            "principal.asset.ip",
+            "principal.ip",
+            "src.artifact.ip",
+            "src.asset.ip",
+            "src.ip",
+            "target.artifact.ip",
+            "target.asset.ip",
+            "target.ip",
+        ],
+        "namespace": [
+            "principal.namespace",
+            "src.namespace",
+            "target.namespace",
+        ],
+        "process_id": [
+            "principal.process.parent_process.pid",
+            "principal.process.parent_process.product_specific_process_id",
+            "principal.process.pid",
+            "principal.process.product_specific_process_id",
+            "target.process.parent_process.pid",
+            "target.process.parent_process.product_specific_process_id",
+            "target.process.pid",
+            "target.process.product_specific_process_id",
+        ],
+        "user": [
+            "about.user.userid",
+            "observer.user.userid",
+            "principal.user.user_display_name",
+            "principal.user.userid",
+            "principal.user.windows_sid",
+            "src.user.userid",
+            "target.user.user_display_name",
+            "target.user.userid",
+            "target.user.windows_sid",
+        ]
+    }
+
+
 def camel_to_snake(name):
     """Convert CamelCase to snake_case, handling consecutive uppercase letters and dots properly."""
     parts = name.split(".")
@@ -27,6 +124,7 @@ def extract_udm_schema():
         "Enums": {},
         "Subtypes": {},
         "TopLevelFields": {},
+        "GroupedFields": add_grouped_fields(),
     }
 
     # Find all h2 headers

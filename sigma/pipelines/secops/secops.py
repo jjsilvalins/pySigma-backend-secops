@@ -1,18 +1,20 @@
 import json
 from importlib import resources
 
-from sigma.processing.conditions import DetectionItemProcessingItemAppliedCondition, IncludeFieldCondition
+from sigma.processing.conditions import DetectionItemProcessingItemAppliedCondition, IncludeFieldCondition, MatchStringCondition, RuleProcessingItemAppliedCondition
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
 from sigma.processing.transformations import (
     FieldMappingTransformation,
 )
 
-from .mappings import get_common_mappings, enum_mappings
+from .mappings import enum_mappings, get_field_mappings
 from .transformations import (
     ConvertEnumValueTransformation,
     EnsureValidUDMFieldsTransformation,
     EventTypeFieldMappingTransformation,
-    SetRuleEventTypeTransformation,
+    RemoveHashAlgoFromValueTransformation,
+    SetRuleEventTypeFromLogsourceTransformation,
+    SetRuleEventTypeFromEventIDTransformation,
     
 )
 
@@ -23,10 +25,19 @@ udm_schema = json.loads(resources.read_text("sigma.pipelines.secops", "udm_field
 
 ## SET EVENT TYPE IN RULE CUSTOM ATTRIBUTE
 
-set_event_type_proc_item = ProcessingItem(
-    identifier="secops_set_event_type",
-    transformation=SetRuleEventTypeTransformation(),
-)
+set_event_type_proc_items = [
+    ProcessingItem(
+        identifier="secops_set_event_type_from_logsource",
+        transformation=SetRuleEventTypeFromLogsourceTransformation(),
+    ),
+    ProcessingItem(
+        identifier="secops_set_event_type_from_event_id",
+        transformation=SetRuleEventTypeFromEventIDTransformation(),
+        field_name_conditions=[IncludeFieldCondition(["EventID"]),],
+        rule_conditions=[RuleProcessingItemAppliedCondition("secops_set_event_type_from_logsource")],
+        rule_condition_negation=True,  # If we can set the event type from the logsource, we don't need to set it from any EventIDs present in selection items
+    ),
+]
 
 
 ## FIELD MAPPINGS
@@ -39,7 +50,7 @@ event_type_field_mapping_proc_item = ProcessingItem(
 # If field has not been mapped by event_type_field_mapping_proc_item, map using common_field_mappings
 common_field_mappings_proc_item = ProcessingItem(
     identifier="secops_common_field_mappings",
-    transformation=FieldMappingTransformation(get_common_mappings()),
+    transformation=FieldMappingTransformation(get_field_mappings().get('common')),
     detection_item_conditions=[DetectionItemProcessingItemAppliedCondition("secops_event_type_field_mappings")],
     detection_item_condition_linking=any,
     detection_item_condition_negation=True,
@@ -60,6 +71,13 @@ udm_validation_proc_item = ProcessingItem(
     transformation=EnsureValidUDMFieldsTransformation(udm_schema),
 )
 
+## REMOVE HASH ALGORITHM FROM HASHES FIELD
+### MUST OCCUR AFTER FIELD RENAMES
+remove_hash_algo_from_hashes_proc_item = ProcessingItem(
+    identifier="secops_remove_hash_algo_from_hashes",
+    transformation=RemoveHashAlgoFromValueTransformation(),
+    field_name_conditions=[IncludeFieldCondition(["hash"]),],
+)
 
 
 def secops_udm_pipeline() -> ProcessingPipeline:
@@ -67,29 +85,11 @@ def secops_udm_pipeline() -> ProcessingPipeline:
         name="Google SecOps UDM Pipeline",
         priority=20,
         items=[
-            set_event_type_proc_item,
+            *set_event_type_proc_items,
             event_type_field_mapping_proc_item,
             common_field_mappings_proc_item,
             udm_validation_proc_item,
             convert_enum_values_proc_item,
-            # ProcessingItem(
-            #    identifier="map_windows_event_ids",
-            #    transformation=MapStringTransformation(mapping=get_windows_event_id_mapping()),
-            # ),
-            # Commented out for now, uncomment if needed
-            # ProcessingItem(
-            #     identifier="handle_unmapped_fields",
-            #     transformation=DetectionItemFailureTransformation(
-            #         "The field {field} is not mapped to UDM schema",
-            #     ),
-            #     condition=IncludeFieldCondition(fields=["*"]),
-            # ),
-            # ProcessingItem(
-            #     identifier="ensure_critical_fields",
-            #     transformation=RuleFailureTransformation(
-            #         "Critical field {field} is missing",
-            #     ),
-            #     condition=ExcludeFieldCondition(fields=["metadata.event_type", "metadata.product_name"]),
-            # ),
+            remove_hash_algo_from_hashes_proc_item,
         ],
     )
