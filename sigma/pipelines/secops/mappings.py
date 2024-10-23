@@ -5,6 +5,7 @@ from .utils import get_field_mapping_type
 # TODO: EventType field in sysmon logs, ensure value is valid for metadata.event_type
 # TODO: Add mappings/transformations for LogonType to Authentication.Mechanism enum conversion for logon events
 
+
 @lru_cache(maxsize=128)
 def get_field_mappings() -> Dict[str, Dict[str, str]]:
     return {
@@ -104,10 +105,11 @@ def get_field_mappings() -> Dict[str, Dict[str, str]]:
         },
     }
 
+
 def get_field_mappings_by_event_type(metadata_event_type: str) -> Dict[str, str]:
     """
     Get the field mappings for a given event type
-    
+
     Args:
         metadata_event_type (str): The event type to get the field mappings for
 
@@ -118,9 +120,10 @@ def get_field_mappings_by_event_type(metadata_event_type: str) -> Dict[str, str]
     event_type = get_field_mapping_type(metadata_event_type)
     if not event_type:
         return {}
-    
+
     all_mappings = get_field_mappings()
     return all_mappings.get(event_type, {})
+
 
 enum_mappings = {
     "network.direction": {  # From Initiated sysmon field

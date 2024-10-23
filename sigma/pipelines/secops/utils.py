@@ -1,11 +1,13 @@
 from typing import Dict, Optional, Set
 from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaRule
 
+
 def get_rule_detection_fields(rule: SigmaRule) -> Set[str]:
     fields = set()
     for detection_value in rule.detection.detections.values():
         fields.update(_get_fields_from_detection(detection_value))
     return fields
+
 
 def _get_fields_from_detection(detection_value) -> Set[str]:
     fields = set()
@@ -17,21 +19,20 @@ def _get_fields_from_detection(detection_value) -> Set[str]:
             fields.update(_get_fields_from_detection(item))
     return fields
 
+
 def determine_event_type_logsource(rule: SigmaRule) -> Optional[str]:
     category = rule.logsource.category
     service = rule.logsource.service
     product = rule.logsource.product
 
-    mappings = {
-        **get_category_mapping(),
-        **get_service_mapping(),
-        **get_product_mapping()
-    }
-    
+    mappings = {**get_category_mapping(), **get_service_mapping(), **get_product_mapping()}
+
     return mappings.get(category) or mappings.get(service) or mappings.get(product)
+
 
 def determine_event_type_event_id(event_id: str) -> Optional[str]:
     return get_windows_event_id_mapping().get(event_id)
+
 
 def get_category_mapping() -> Dict[str, str]:
     return {
@@ -56,6 +57,7 @@ def get_category_mapping() -> Dict[str, str]:
         "pipe_created": "FILE_CREATION",
     }
 
+
 def get_service_mapping() -> Dict[str, str]:
     return {
         "firewall": "NETWORK_CONNECTION",
@@ -66,6 +68,7 @@ def get_service_mapping() -> Dict[str, str]:
         "powershell": "PROCESS_LAUNCH",
     }
 
+
 def get_product_mapping() -> Dict[str, str]:
     return {
         "apache": "NETWORK_HTTP",
@@ -73,6 +76,7 @@ def get_product_mapping() -> Dict[str, str]:
         "mysql": "RESOURCE_READ",
         "postgresql": "RESOURCE_READ",
     }
+
 
 def get_windows_event_id_mapping() -> Dict[str, str]:
     return {
@@ -115,6 +119,7 @@ def get_windows_event_id_mapping() -> Dict[str, str]:
         "4732": "GROUP_MEMBER_ADD",
         "4756": "GROUP_MEMBER_ADD",
     }
+
 
 def get_field_mapping_type(event_type: str) -> str:
     mapping = {

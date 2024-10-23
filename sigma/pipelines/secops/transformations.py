@@ -164,7 +164,7 @@ class EventTypeFieldMappingTransformation(FieldMappingTransformation):
             # Convert set to list and reverse it
             event_types_list = list(event_types)
             event_types_list.reverse()
-            
+
             for event_type in event_types_list:
                 if event_type_mappings := get_field_mappings_by_event_type(event_type):
                     self.mapping.update(event_type_mappings)

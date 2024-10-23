@@ -98,7 +98,7 @@ def add_grouped_fields() -> dict:
             "target.user.user_display_name",
             "target.user.userid",
             "target.user.windows_sid",
-        ]
+        ],
     }
 
 

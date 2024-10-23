@@ -1,6 +1,3 @@
-import json
-
-
 def is_valid_udm_field(field_path: str, udm_schema: dict) -> bool:
     """
     Check if a field path is valid according to the UDM schema.
