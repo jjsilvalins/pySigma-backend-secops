@@ -8,3 +8,5 @@ docs/_build
 .env
 .venv/
 .python-version
+docs/
+test.py
