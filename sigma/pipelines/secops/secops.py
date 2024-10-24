@@ -17,6 +17,7 @@ from .transformations import (
     EnsureValidUDMFieldsTransformation,
     EventTypeFieldMappingTransformation,
     RemoveHashAlgoFromValueTransformation,
+    SetPrependMetadataTransformation,
     SetRuleEventTypeFromEventIDTransformation,
     SetRuleEventTypeFromLogsourceTransformation,
 )
@@ -25,6 +26,14 @@ from .transformations import (
 udm_schema = json.loads(resources.read_text("sigma.pipelines.secops", "udm_field_schema.json"))
 
 # PROCESSING ITEMS
+
+## SET PIPELINE STATE FOR POSTPROCESSING
+
+def set_prepend_metadata_proc_item(prepend_metadata: bool = True) -> ProcessingItem:
+    return ProcessingItem(
+        identifier="secops_set_prepend_metadata",
+        transformation=SetPrependMetadataTransformation(prepend_metadata),
+    )
 
 ## SET EVENT TYPE IN RULE CUSTOM ATTRIBUTE
 
@@ -89,11 +98,12 @@ remove_hash_algo_from_hashes_proc_item = ProcessingItem(
 )
 
 
-def secops_udm_pipeline() -> ProcessingPipeline:
+def secops_udm_pipeline(prepend_metadata: bool = True) -> ProcessingPipeline:
     return ProcessingPipeline(
         name="Google SecOps UDM Pipeline",
         priority=20,
         items=[
+            set_prepend_metadata_proc_item(prepend_metadata),
             *set_event_type_proc_items,
             event_type_field_mapping_proc_item,
             common_field_mappings_proc_item,

@@ -20,6 +20,16 @@ from .validators import is_valid_udm_field
 
 
 @dataclass
+class SetPrependMetadataTransformation(Transformation):
+    prepend_metadata: bool
+
+    def apply(self, pipeline: ProcessingPipeline, rule: SigmaRule) -> None:
+        self.processing_item_applied(rule)
+        if pipeline.state.get("prepend_metadata", None) is None:
+            pipeline.state["prepend_metadata"] = self.prepend_metadata
+
+
+@dataclass
 class RemoveHashAlgoFromValueTransformation(ValueTransformation):
     def apply_value(self, field: str, val: SigmaType) -> SigmaType:
         return SigmaString(val.to_plain().split("|")[-1])
