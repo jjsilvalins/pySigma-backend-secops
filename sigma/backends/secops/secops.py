@@ -1,29 +1,33 @@
-from typing import ClassVar, Dict, Optional, Tuple, Type, Union
+from importlib import resources
+from typing import Any, ClassVar, Dict, Optional, Tuple, Type, Union
 
-from sigma.conditions import (
-    ConditionAND,
-    ConditionFieldEqualsValueExpression,
-    ConditionItem,
-    ConditionNOT,
-    ConditionOR,
-)
+from sigma.conditions import ConditionAND, ConditionFieldEqualsValueExpression, ConditionItem, ConditionNOT, ConditionOR
 from sigma.conversion.base import TextQueryBackend
 from sigma.conversion.deferred import DeferredQueryExpression
 from sigma.conversion.state import ConversionState
-from sigma.types import (
-    SigmaCompareExpression,
-    SigmaString,
-    SpecialChars,
-)
-
+from sigma.pipelines.secops.yara_l.yara_l import yara_l_pipeline
+from sigma.processing.pipeline import ProcessingPipeline
+from sigma.rule import SigmaRule
+from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars
+import json
 
 class SecOpsBackend(TextQueryBackend):
     """Google SecOps UDM backend."""
 
     name: ClassVar[str] = "Google SecOps UDM backend"
+    identifier: ClassVar[str] = "secops"
     formats: Dict[str, str] = {
         "default": "Plain UDM queries",
+        "yara_l": "YARA-L 2.0 Detection Rules Output Format",
     }
+    
+    udm_schema: ClassVar[Dict[str, Any]] = json.loads(resources.read_text("sigma.pipelines.secops", "udm_field_schema.json"))
+    
+    output_format_processing_pipeline: ClassVar[Dict[str, ProcessingPipeline]] = {
+        "default": ProcessingPipeline(),
+        "yara_l": yara_l_pipeline(),
+    }
+    
     requires_pipeline: bool = True
 
     precedence: ClassVar[Tuple[Type[ConditionItem], Type[ConditionItem], Type[ConditionItem]]] = (
@@ -40,7 +44,7 @@ class SecOpsBackend(TextQueryBackend):
     not_token: ClassVar[str] = "NOT"
     eq_token: ClassVar[str] = "="
 
-    eq_expression: ClassVar[str] = "{field} {backend.eq_token} {value} nocase"  # Expression for field = value
+    eq_expression: ClassVar[str] = "{field} {backend.eq_token} {value}"  # Expression for field = value
 
     str_quote: ClassVar[str] = '"'
     escape_char: ClassVar[str] = "\\"
@@ -168,6 +172,12 @@ class SecOpsBackend(TextQueryBackend):
                 value = cond.value
             else:
                 expr = self.eq_expression
+                # if the field is not an enum, use nocase
+                temp_field = cond.field
+                if temp_field[0] == "$":
+                    temp_field = ".".join(temp_field.split(".")[1:])
+                if temp_field not in self.udm_schema.get("Enums", {}):
+                    expr += " nocase"
                 value = cond.value
             return expr.format(
                 field=self.escape_and_quote_field(cond.field),
@@ -214,3 +224,45 @@ class SecOpsBackend(TextQueryBackend):
             converted = self.convert_value_str(value, state).strip('"')
             return converted.replace("*", ".*").replace("?", ".") if value.contains_special() else converted
         return str(value).strip('"')
+    
+    def finalize_query(
+        self,
+        rule: SigmaRule,
+        query: Any,
+        index: int,
+        state: ConversionState,
+        output_format: str,
+    ):
+        """
+        Finalize query. Dispatches to format-specific method. The index parameter enumerates generated queries if the
+        conversion of a Sigma rule results in multiple queries.
+
+        This is the place where syntactic elements of the target format for the specific query are added,
+        e.g. adding query metadata.
+        """
+        backend_query = self.__getattribute__("finalize_query_" + output_format)(
+            rule, query, index, state
+        )
+        
+        return backend_query 
+
+    def finalize_query_default(
+        self, rule: SigmaRule, query: Any, index: int, state: ConversionState
+    ) -> Any:
+        """
+        Finalize conversion result of a query. Handling of deferred query parts must be implemented by overriding
+        this method.
+        """
+        return self.last_processing_pipeline.postprocess_query(rule, query)
+
+
+    def finalize_query_yara_l(
+        self, rule: SigmaRule, query: Any, index: int, state: ConversionState
+    ) -> Any:
+        """
+        Finalize conversion result of a query. Handling of deferred query parts must be implemented by overriding
+        this method.
+        """
+        self.last_processing_pipeline.state["output_format"] = "yara_l"
+        query = self.last_processing_pipeline.postprocess_query(rule, query)
+        return query

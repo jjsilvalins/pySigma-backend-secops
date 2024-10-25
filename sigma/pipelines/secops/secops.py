@@ -5,13 +5,15 @@ from sigma.processing.conditions import (
     DetectionItemProcessingItemAppliedCondition,
     IncludeFieldCondition,
     RuleProcessingItemAppliedCondition,
+    RuleProcessingStateCondition,
 )
-from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
+from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline, QueryPostprocessingItem
 from sigma.processing.transformations import (
     FieldMappingTransformation,
 )
 
 from .mappings import enum_mappings, get_field_mappings
+from .postprocessing import PrependMetadataPostprocessingTransformation
 from .transformations import (
     ConvertEnumValueTransformation,
     EnsureValidUDMFieldsTransformation,
@@ -81,6 +83,7 @@ convert_enum_values_proc_item = ProcessingItem(
 )
 
 # UDM VALIDATION
+## ENSURE ALL FIELDS ARE VALID UDM FIELDS
 
 udm_validation_proc_item = ProcessingItem(
     identifier="secops_udm_validation",
@@ -89,12 +92,22 @@ udm_validation_proc_item = ProcessingItem(
 
 ## REMOVE HASH ALGORITHM FROM HASHES FIELD
 ### MUST OCCUR AFTER FIELD RENAMES
+
 remove_hash_algo_from_hashes_proc_item = ProcessingItem(
     identifier="secops_remove_hash_algo_from_hashes",
     transformation=RemoveHashAlgoFromValueTransformation(),
     field_name_conditions=[
         IncludeFieldCondition(["hash"]),
     ],
+)
+
+# POSTPROCESSING
+## ADD METADATA TO QUERY
+
+prepend_metadata_postprocessing_item = QueryPostprocessingItem(
+    identifier="secops_prepend_metadata_postprocessing",
+    transformation=PrependMetadataPostprocessingTransformation(),
+    rule_conditions=[RuleProcessingStateCondition(key="prepend_metadata", val=True)],
 )
 
 
@@ -111,4 +124,6 @@ def secops_udm_pipeline(prepend_metadata: bool = True) -> ProcessingPipeline:
             convert_enum_values_proc_item,
             remove_hash_algo_from_hashes_proc_item,
         ],
+        postprocessing_items=[prepend_metadata_postprocessing_item],
+        allowed_backends=["secops"],
     )
