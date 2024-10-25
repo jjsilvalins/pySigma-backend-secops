@@ -40,6 +40,6 @@ rule {rule.title.lower().replace(" ", "_")} {{
     {indented_query}
     
   conditions: 
-    {indented_query}
+    $event1
 }}
     """
