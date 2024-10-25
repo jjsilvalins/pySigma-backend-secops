@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Iterable, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 from sigma.correlations import SigmaCorrelationRule
 from sigma.processing.pipeline import ProcessingPipeline
@@ -18,6 +18,14 @@ from .mappings import enum_mappings, get_field_mappings_by_event_type
 from .utils import determine_event_type_event_id, determine_event_type_logsource
 from .validators import is_valid_udm_field
 
+
+@dataclass
+class PrependEventVariableTransformation(FieldMappingTransformation):
+    """Prepend event variable to every field name for YARA_L output format/pipeline"""
+    mapping = {}
+    
+    def get_mapping(self, field: str) -> Union[None, str, List[str]]:
+        return f"$event1.{field}"
 
 @dataclass
 class SetPrependMetadataTransformation(Transformation):

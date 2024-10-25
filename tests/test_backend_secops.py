@@ -7,7 +7,7 @@ from sigma.pipelines.secops import secops_udm_pipeline
 
 @pytest.fixture
 def secops_backend():
-    return SecOpsBackend(processing_pipeline=secops_udm_pipeline())
+    return SecOpsBackend(processing_pipeline=secops_udm_pipeline(prepend_metadata=False))
 
 
 def test_secops_and_expression(secops_backend: SecOpsBackend):
@@ -341,3 +341,27 @@ def test_secops_cmdline_filters(secops_backend: SecOpsBackend):
             'target.process.file.full_path = /.*\\\\netsh.exe$/ nocase AND target.process.command_line = /.* firewall .*/ nocase AND target.process.command_line = /.* add .*/ nocase AND (NOT (target.process.command_line = /.*advfirewall firewall add rule name=Dropbox dir=in action=allow \\"program=.:\\\\Program Files (x86)\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" enable=yes profile=Any.*|.*advfirewall firewall add rule name=Dropbox dir=in action=allow \\"program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" enable=yes profile=Any.*/ nocase))'
         ]
     )
+
+
+def test_secops_yara_l_output_format(secops_backend: SecOpsBackend):
+    output = secops_backend.convert_rule(
+        SigmaRule.from_yaml(
+            r"""
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine: valueA
+                    User: valueB
+                condition: sel
+            """
+        ),
+        output_format="yara_l",
+    )
+    assert "rule test {" in output[0]
+    assert "meta:" in output[0]
+    assert "events:" in output[0]
+    assert "conditions:" in output[0]

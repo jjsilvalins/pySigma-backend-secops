@@ -1,3 +1,4 @@
+import json
 from importlib import resources
 from typing import Any, ClassVar, Dict, Optional, Tuple, Type, Union
 
@@ -5,11 +6,11 @@ from sigma.conditions import ConditionAND, ConditionFieldEqualsValueExpression, 
 from sigma.conversion.base import TextQueryBackend
 from sigma.conversion.deferred import DeferredQueryExpression
 from sigma.conversion.state import ConversionState
-from sigma.pipelines.secops.yara_l.yara_l import yara_l_pipeline
+from sigma.pipelines.secops.yara_l import yara_l_pipeline
 from sigma.processing.pipeline import ProcessingPipeline
 from sigma.rule import SigmaRule
 from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars
-import json
+
 
 class SecOpsBackend(TextQueryBackend):
     """Google SecOps UDM backend."""
