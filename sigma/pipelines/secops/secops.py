@@ -31,11 +31,13 @@ udm_schema = json.loads(resources.read_text("sigma.pipelines.secops", "udm_field
 
 ## SET PIPELINE STATE FOR POSTPROCESSING
 
+
 def set_prepend_metadata_proc_item(prepend_metadata: bool = True) -> ProcessingItem:
     return ProcessingItem(
         identifier="secops_set_prepend_metadata",
         transformation=SetPrependMetadataTransformation(prepend_metadata),
     )
+
 
 ## SET EVENT TYPE IN RULE CUSTOM ATTRIBUTE
 

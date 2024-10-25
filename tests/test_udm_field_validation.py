@@ -202,7 +202,7 @@ def test_is_valid_udm_field_value_enum_types(udm_schema):
 def test_is_valid_udm_field_value_subtypes(udm_schema):
     assert is_valid_udm_field_value("src.ip", "192.168.1.1", udm_schema)
     assert is_valid_udm_field_value("target.mac", "00:11:22:33:44:55", udm_schema)
-    
+
 
 def test_is_valid_udm_field_value_complex_types(udm_schema):
     assert is_valid_udm_field_value("network.sent_packets", 100, udm_schema)
@@ -217,16 +217,20 @@ def test_network_packet_fields_exist(udm_schema):
     assert is_valid_udm_field("network.sent_packets", udm_schema)
     assert is_valid_udm_field("network.received_packets", udm_schema)
 
-@pytest.mark.parametrize("event_type", [
-    "process", "network", "file", "authentication", "registry", "dns"
-])
+
+@pytest.mark.parametrize("event_type", ["process", "network", "file", "authentication", "registry", "dns"])
 def test_event_type_field_mappings_validity(event_type, udm_schema):
     mappings = get_field_mappings().get(event_type)
-    
+
     for sigma_field, udm_field in mappings.items():
-        assert is_valid_udm_field(udm_field, udm_schema), f"Invalid UDM field '{udm_field}' for Sigma field '{sigma_field}' in event type '{event_type}'"
+        assert is_valid_udm_field(
+            udm_field, udm_schema
+        ), f"Invalid UDM field '{udm_field}' for Sigma field '{sigma_field}' in event type '{event_type}'"
+
 
 def test_common_field_mappings_validity(udm_schema):
-    mappings = get_field_mappings().get('common')
+    mappings = get_field_mappings().get("common")
     for sigma_field, udm_field in mappings.items():
-        assert is_valid_udm_field(udm_field, udm_schema), f"Invalid UDM field '{udm_field}' for Sigma field '{sigma_field}' in event type 'common'"
+        assert is_valid_udm_field(
+            udm_field, udm_schema
+        ), f"Invalid UDM field '{udm_field}' for Sigma field '{sigma_field}' in event type 'common'"

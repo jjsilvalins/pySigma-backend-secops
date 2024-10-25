@@ -22,10 +22,12 @@ from .validators import is_valid_udm_field
 @dataclass
 class PrependEventVariableTransformation(FieldMappingTransformation):
     """Prepend event variable to every field name for YARA_L output format/pipeline"""
+
     mapping = {}
-    
+
     def get_mapping(self, field: str) -> Union[None, str, List[str]]:
         return f"$event1.{field}"
+
 
 @dataclass
 class SetPrependMetadataTransformation(Transformation):

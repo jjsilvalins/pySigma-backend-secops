@@ -21,14 +21,16 @@ class SecOpsBackend(TextQueryBackend):
         "default": "Plain UDM queries",
         "yara_l": "YARA-L 2.0 Detection Rules Output Format",
     }
-    
-    udm_schema: ClassVar[Dict[str, Any]] = json.loads(resources.read_text("sigma.pipelines.secops", "udm_field_schema.json"))
-    
+
+    udm_schema: ClassVar[Dict[str, Any]] = json.loads(
+        resources.read_text("sigma.pipelines.secops", "udm_field_schema.json")
+    )
+
     output_format_processing_pipeline: ClassVar[Dict[str, ProcessingPipeline]] = {
         "default": ProcessingPipeline(),
         "yara_l": yara_l_pipeline(),
     }
-    
+
     requires_pipeline: bool = True
 
     precedence: ClassVar[Tuple[Type[ConditionItem], Type[ConditionItem], Type[ConditionItem]]] = (
@@ -225,7 +227,7 @@ class SecOpsBackend(TextQueryBackend):
             converted = self.convert_value_str(value, state).strip('"')
             return converted.replace("*", ".*").replace("?", ".") if value.contains_special() else converted
         return str(value).strip('"')
-    
+
     def finalize_query(
         self,
         rule: SigmaRule,
@@ -241,25 +243,18 @@ class SecOpsBackend(TextQueryBackend):
         This is the place where syntactic elements of the target format for the specific query are added,
         e.g. adding query metadata.
         """
-        backend_query = self.__getattribute__("finalize_query_" + output_format)(
-            rule, query, index, state
-        )
-        
-        return backend_query 
+        backend_query = self.__getattribute__("finalize_query_" + output_format)(rule, query, index, state)
 
-    def finalize_query_default(
-        self, rule: SigmaRule, query: Any, index: int, state: ConversionState
-    ) -> Any:
+        return backend_query
+
+    def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
         """
         Finalize conversion result of a query. Handling of deferred query parts must be implemented by overriding
         this method.
         """
         return self.last_processing_pipeline.postprocess_query(rule, query)
 
-
-    def finalize_query_yara_l(
-        self, rule: SigmaRule, query: Any, index: int, state: ConversionState
-    ) -> Any:
+    def finalize_query_yara_l(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
         """
         Finalize conversion result of a query. Handling of deferred query parts must be implemented by overriding
         this method.
