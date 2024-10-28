@@ -1,4 +1,4 @@
-# pySigma Google SecOps (Chronicle) Backend (Alpha)
+# pySigma Google SecOps (Chronicle) Backend (Beta)
 
 ![Tests](https://github.com/AttackIQ/pySigma-backend-secops/actions/workflows/test.yml/badge.svg)
 ![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/slincoln-aiq/f9db5eaebc0a30cde8045bea889df922/raw/slincoln-aiq-pySigma-backend-secops.json)
@@ -10,7 +10,7 @@
 
 ## Contents
 
-- [pySigma Google SecOps (Chronicle) Backend (Alpha)](#pysigma-google-secops-chronicle-backend-alpha)
+- [pySigma Google SecOps (Chronicle) Backend (Beta)](#pysigma-google-secops-chronicle-backend-beta)
   - [📖 Overview](#-overview)
   - [🚀 Quick Start](#-quick-start)
   - [🛠️ Advanced Features](#️-advanced-features)
