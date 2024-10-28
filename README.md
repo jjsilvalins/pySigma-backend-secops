@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/Status-pre--release-orange)
 ![PyPI version](https://badge.fury.io/py/pysigma-backend-secops.svg)
 ![Python versions](https://img.shields.io/pypi/pyversions/pysigma-backend-secops.svg)
-![pySigma version](https://img.shields.io/badge/pySigma-%3E%3D0.11.0-blue)
+![pySigma version](https://img.shields.io/badge/pySigma-%3E%3D0.11.17-blue)
 ![License](https://img.shields.io/github/license/AttackIQ/pySigma-backend-secops.svg)
 
 ## Contents
