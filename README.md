@@ -244,7 +244,7 @@ This pipeline performs the following transformations:
 The SecOps backend supports the following output formats:
 
 * `default`: Plain Google SecOps UDM queries
-* `yara`: YARA-L v2.0 output format (In Beta)
+* `yara_l`: YARA-L v2.0 output format (In Beta)
 
 ## 🗺️ Field Mappings
 

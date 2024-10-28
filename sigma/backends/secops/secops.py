@@ -1,6 +1,6 @@
 import json
 from importlib import resources
-from typing import Any, ClassVar, Dict, Optional, Tuple, Type, Union
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type, Union
 
 from sigma.conditions import ConditionAND, ConditionFieldEqualsValueExpression, ConditionItem, ConditionNOT, ConditionOR
 from sigma.conversion.base import TextQueryBackend
@@ -262,3 +262,9 @@ class SecOpsBackend(TextQueryBackend):
         self.last_processing_pipeline.state["output_format"] = "yara_l"
         query = self.last_processing_pipeline.postprocess_query(rule, query)
         return query
+
+    def finalize_output_yara_l(self, queries: List[Any]) -> Any:
+        """
+        Finalize output. Dispatches to format-specific method.
+        """
+        return queries
