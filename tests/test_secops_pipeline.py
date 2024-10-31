@@ -268,3 +268,52 @@ def test_set_event_type_already_set(secops_pipeline):
     secops_pipeline.apply(rule)
 
     assert rule.custom_attributes["event_types"] == {"PROCESS_UNCATEGORIZED"}
+
+
+def test_hash_field_common_field_mappings(secops_pipeline):
+    rule = SigmaRule.from_yaml(
+        """
+        title: Test Hash Field Common Field Mappings
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            selection_hashes:
+                Hashes:
+                    - 'MD5|1234567890abcdef1234567890abcdef'
+                    - 'SHA1|92429d82a41e930486c6de5ebda9602d55c39986'
+                    - 'SHA256|2413fb3709b05939f04cf2e92f7d0897fc2596f9ad0b8a9ea855c7bfebaae892'
+                
+            selection_algos:
+                md5: '0987654321abcdef0987654321abcdef'
+                sha1: '6c66b4e46de761b856df0e14ad11098da2e6c351'
+                sha256: 'ba8fb484289ee92eb908642324f2a783586c5c1be12957c4a4b89524ad5b3acd'
+            condition: selection_hashes or selection_algos
+    """
+    )
+
+    secops_pipeline.apply(rule)
+
+    assert rule.detection.detections["selection_hashes"].detection_items[0].field == "hash"
+    assert rule.detection.detections["selection_hashes"].detection_items[0].value[0] == SigmaString(
+        "1234567890abcdef1234567890abcdef"
+    )
+    assert rule.detection.detections["selection_hashes"].detection_items[0].value[1] == SigmaString(
+        "92429d82a41e930486c6de5ebda9602d55c39986"
+    )
+    assert rule.detection.detections["selection_hashes"].detection_items[0].value[2] == SigmaString(
+        "2413fb3709b05939f04cf2e92f7d0897fc2596f9ad0b8a9ea855c7bfebaae892"
+    )
+    assert rule.detection.detections["selection_algos"].detection_items[0].field == "hash"
+    assert rule.detection.detections["selection_algos"].detection_items[0].value[0] == SigmaString(
+        "0987654321abcdef0987654321abcdef"
+    )
+    assert rule.detection.detections["selection_algos"].detection_items[1].value[0] == SigmaString(
+        "6c66b4e46de761b856df0e14ad11098da2e6c351"
+    )
+    assert rule.detection.detections["selection_algos"].detection_items[2].value[0] == SigmaString(
+        "ba8fb484289ee92eb908642324f2a783586c5c1be12957c4a4b89524ad5b3acd"
+    )
+    assert len(rule.detection.detections["selection_algos"].detection_items) == 3
+    assert len(rule.detection.detections["selection_hashes"].detection_items) == 1
+    

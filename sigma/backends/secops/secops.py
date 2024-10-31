@@ -1,5 +1,6 @@
 import json
 from importlib import resources
+import re
 from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type, Union
 
 from sigma.conditions import ConditionAND, ConditionFieldEqualsValueExpression, ConditionItem, ConditionNOT, ConditionOR
@@ -9,7 +10,7 @@ from sigma.conversion.state import ConversionState
 from sigma.pipelines.secops.yara_l import yara_l_pipeline
 from sigma.processing.pipeline import ProcessingPipeline
 from sigma.rule import SigmaRule
-from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars
+from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars, SigmaRegularExpression
 
 
 class SecOpsBackend(TextQueryBackend):
@@ -83,9 +84,10 @@ class SecOpsBackend(TextQueryBackend):
     unbound_value_re_expression: ClassVar[str] = "{value}"
 
     # String matching operators. if none is appropriate eq_token is used.
-    startswith_expression: ClassVar[Optional[str]] = "{field} = /^{value}.*/ nocase"
-    endswith_expression: ClassVar[Optional[str]] = "{field} = /.*{value}$/ nocase"
-    contains_expression: ClassVar[Optional[str]] = "{field} = /.*{value}.*/ nocase"
+    # Since we are using regex, we need to add  '.*' where appropriate, but this is done in the convert_value_str method.
+    startswith_expression: ClassVar[Optional[str]] = "{field} = /^{value}/ nocase"
+    endswith_expression: ClassVar[Optional[str]] = "{field} = /{value}$/ nocase"
+    contains_expression: ClassVar[Optional[str]] = "{field} = /{value}/ nocase"
     wildcard_match_expression: ClassVar[Optional[str]] = (
         None  # Special expression if wildcards can't be matched with the eq_token operator
     )
@@ -122,6 +124,11 @@ class SecOpsBackend(TextQueryBackend):
 
         Override so when the wildcard is removed in startswith, endswith and contains expressions, we don't quote the string
         """
+        # Endswith, startswith and contains expressions are converted to regex, so we need to convert the SigmaString to a regex and then to a plain string.
+        if s.contains_special():
+            return s.to_regex().to_plain()
+        
+        # If the string contains no special characters, we can use the normal conversion.
         converted = s.convert(
             self.escape_char,
             self.wildcard_multi,
@@ -152,14 +159,15 @@ class SecOpsBackend(TextQueryBackend):
                 expr = (
                     self.startswith_expression
                 )  # If all conditions are fulfilled, use 'startswith' operator instead of equal token
-                value = cond.value[:-1]
+                value = cond.value
             elif (  # Same as above but for 'endswith' operator: string starts with wildcard and doesn't contains further special characters
                 self.endswith_expression is not None
                 and cond.value.startswith(SpecialChars.WILDCARD_MULTI)
                 and not cond.value[1:].contains_special()
             ):
                 expr = self.endswith_expression
-                value = cond.value[1:]
+                value = cond.value
+                #value = SigmaString.from_str(cond.value.to_regex().to_plain())
             elif (  # contains: string starts and ends with wildcard
                 self.contains_expression is not None
                 and cond.value.startswith(SpecialChars.WILDCARD_MULTI)
@@ -167,7 +175,7 @@ class SecOpsBackend(TextQueryBackend):
                 and not cond.value[1:-1].contains_special()
             ):
                 expr = self.contains_expression
-                value = cond.value[1:-1]
+                value = cond.value
             elif (  # wildcard match expression: string contains wildcard
                 self.wildcard_match_expression is not None and cond.value.contains_special()
             ):
@@ -223,10 +231,20 @@ class SecOpsBackend(TextQueryBackend):
         )
 
     def convert_value_for_in_expression(self, value, state):
-        if isinstance(value, SigmaString):
-            converted = self.convert_value_str(value, state).strip('"')
-            return converted.replace("*", ".*").replace("?", ".") if value.contains_special() else converted
-        return str(value).strip('"')
+        """Convert a value for an IN expression.  SecOps does not support the IN operator, so we have to use the eq_token operator with a regex.
+        Therefore, we also have to escape the regex characters in the value's.
+
+        Args:
+            value (SigmaString): The value to convert.
+            state (ConversionState): The conversion state.
+
+        Returns:
+            _type_: _description_
+        """
+        if not isinstance(value, SigmaString):
+            value = SigmaString.from_str(str(value))
+        return value.to_regex().to_plain()
+            
 
     def finalize_query(
         self,

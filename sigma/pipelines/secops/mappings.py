@@ -33,6 +33,11 @@ def get_field_mappings() -> Dict[str, Dict[str, str]]:
             "Hostname": "hostname",
             "ComputerName": "hostname",
             "Hashes": "hash",
+            "md5": "hash",
+            "sha1": "hash",
+            "sha256": "hash",
+            "sha512": "hash",
+            "imphash": "hash"
         },
         "process": {
             "CommandLine": "target.process.command_line",
