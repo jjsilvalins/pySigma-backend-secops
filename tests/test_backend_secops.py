@@ -196,7 +196,7 @@ def test_secops_negation_basic(secops_backend: SecOpsBackend):
             )
         )
         == [
-            'target.process.file.full_path = /.*\\\\process.exe$/ nocase AND target.process.command_line = "this" nocase AND (NOT target.process.command_line = "notthis" nocase)'
+            'target.process.file.full_path = /.*\\\\process\\.exe$/ nocase AND target.process.command_line = "this" nocase AND (NOT target.process.command_line = "notthis" nocase)'
         ]
     )
 
@@ -225,7 +225,7 @@ def test_secops_negation_contains(secops_backend: SecOpsBackend):
             )
         )
         == [
-            "target.process.file.full_path = /.*\\\\process.exe$/ nocase AND target.process.command_line = /.*this.*/ nocase AND (NOT target.process.command_line = /.*notthis.*/ nocase)"
+            "target.process.file.full_path = /.*\\\\process\\.exe$/ nocase AND target.process.command_line = /.*this.*/ nocase AND (NOT target.process.command_line = /.*notthis.*/ nocase)"
         ]
     )
 
@@ -251,10 +251,8 @@ def test_secops_grouping(secops_backend: SecOpsBackend):
                 condition: selection
     """
             )
-        )
-        == [
-            "target.process.file.full_path = /.*\\\\powershell.exe|.*\\\\pwsh.exe/ nocase AND target.process.command_line = /.*pastebin.com.*|.*anothersite.com.*/ nocase"
-        ]
+        )[0]
+        == "target.process.file.full_path = /.*\\\\powershell\\.exe|.*\\\\pwsh\\.exe/ nocase AND target.process.command_line = /.*pastebin\\.com.*|.*anothersite\\.com.*/ nocase"
     )
 
 
@@ -292,7 +290,7 @@ def test_secops_escape_cmdline_slash(secops_backend: SecOpsBackend):
             )
         )
         == [
-            "target.process.file.full_path = /.*\\\\schtasks.exe$/ nocase AND target.process.command_line = /.* /delete .*/ nocase AND target.process.command_line = /.*/tn \\*.*/ nocase AND target.process.command_line = /.* /f.*/ nocase"
+            "target.process.file.full_path = /.*\\\\schtasks\\.exe$/ nocase AND target.process.command_line = /.* /delete .*/ nocase AND target.process.command_line = /.*/tn \\*.*/ nocase AND target.process.command_line = /.* /f.*/ nocase"
         ]
     )
 
@@ -336,10 +334,8 @@ def test_secops_cmdline_filters(secops_backend: SecOpsBackend):
             level: medium
             """
             )
-        )
-        == [
-            'target.process.file.full_path = /.*\\\\netsh.exe$/ nocase AND target.process.command_line = /.* firewall .*/ nocase AND target.process.command_line = /.* add .*/ nocase AND (NOT (target.process.command_line = /.*advfirewall firewall add rule name=Dropbox dir=in action=allow \\"program=.:\\\\Program Files (x86)\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" enable=yes profile=Any.*|.*advfirewall firewall add rule name=Dropbox dir=in action=allow \\"program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" enable=yes profile=Any.*/ nocase))'
-        ]
+        )[0]
+        == 'target.process.file.full_path = /.*\\\\netsh\\.exe$/ nocase AND target.process.command_line = /.* firewall .*/ nocase AND target.process.command_line = /.* add .*/ nocase AND (NOT (target.process.command_line = /.*advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files \\(x86\\)\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any.*|.*advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any.*/ nocase))'
     )
 
 
@@ -365,3 +361,56 @@ def test_secops_yara_l_output_format(secops_backend: SecOpsBackend):
     assert "meta:" in output[0]
     assert "events:" in output[0]
     assert "conditions:" in output[0]
+
+
+def test_secops_or_grouping_regex_escaping(secops_backend: SecOpsBackend):
+    assert (
+        secops_backend.convert_rule(
+            SigmaRule.from_yaml(
+                """
+title: Suspicious Dev Tunnel Process
+id: 0ef42ab3-e707-490e-ab9e-b0564a72acdc
+related:
+    - id: b3e6418f-7c7a-4fad-993a-93b65027a9f1
+      type: derived
+    - id: 9661ec9d-4439-4a7a-abed-d9be4ca43b6d
+      type: similar
+    - id: 54c8fdd3-6e84-43c4-bb30-25c2e4861bdd
+      type: similar
+status: stable
+description: Rule to detect suspicious devtunnel.exe processes
+references:
+    - https://blueteamops.medium.com/detecting-dev-tunnels-16f0994dc3e2
+    - https://github.com/SigmaHQ/sigma/blob/master/rules-threat-hunting/windows/file/file_event/file_event_win_vscode_tunnel_indicators.yml
+author: MBOWER
+date: 2023-11-01
+tags:
+    - attack.t1071.001
+    - attack.command-and-control
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    CommandLine:
+        CommandLine|contains:
+            - devtunnel
+    Image:
+        Image|endswith:
+            - \devtunnel.exe
+    Filter:
+        ParentImage|contains:
+            - \Teams.exe
+            - \devenv.exe
+            - \git
+            - 'Code Helper (Plugin)'
+            - 'GitHub Desktop Helper (Renderer)'
+    condition: (CommandLine or Image) and not Filter
+falsepositives:
+    - Legitimate developer activity
+level: medium
+    
+    """
+            )
+        )[0]
+        == 'target.process.command_line = /.*devtunnel.*/ nocase OR target.process.file.full_path = /.*\\\\devtunnel\\.exe$/ nocase AND (NOT (principal.process.file.full_path = /.*\\\\Teams\\.exe.*|.*\\\\devenv\\.exe.*|.*\\\\git.*|.*Code Helper \\(Plugin\\).*|.*GitHub Desktop Helper \\(Renderer\\).*/ nocase))'
+    )
