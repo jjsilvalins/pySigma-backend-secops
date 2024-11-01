@@ -58,7 +58,8 @@ class SecOpsBackend(TextQueryBackend):
 
     re_expression: ClassVar[str] = "{field} = /{regex}/ nocase"
     re_escape_char: ClassVar[str] = "\\"
-    re_escape: ClassVar[Tuple[str]] = ('"',)
+    re_escape: ClassVar[Tuple[str]] = ('"', '/')
+    add_escaped_re: ClassVar[str] = "/"
 
     compare_op_expression: ClassVar[str] = "{field} {operator} {value}"
     compare_operators: ClassVar[Dict[SigmaCompareExpression.CompareOperators, str]] = {
@@ -125,8 +126,16 @@ class SecOpsBackend(TextQueryBackend):
         Override so when the wildcard is removed in startswith, endswith and contains expressions, we don't quote the string
         """
         # Endswith, startswith and contains expressions are converted to regex, so we need to convert the SigmaString to a regex and then to a plain string.
+        # Remove surrounding '.*' since its not needed in UDM, contains is implied
         if s.contains_special():
-            return s.to_regex().to_plain()
+            plain_str = s.to_regex(custom_escaped=self.add_escaped_re).to_plain()
+            # Remove leading '.*' if present
+            if plain_str.startswith(".*"):
+                plain_str = plain_str[2:]
+            # Remove trailing '.*' if present  
+            if plain_str.endswith(".*"):
+                plain_str = plain_str[:-2]
+            return plain_str
         
         # If the string contains no special characters, we can use the normal conversion.
         converted = s.convert(
@@ -243,7 +252,7 @@ class SecOpsBackend(TextQueryBackend):
         """
         if not isinstance(value, SigmaString):
             value = SigmaString.from_str(str(value))
-        return value.to_regex().to_plain()
+        return self.convert_value_str(value, state, quote_string=False)
             
 
     def finalize_query(
