@@ -109,7 +109,9 @@ class SetRuleEventTypeFromLogsourceTransformation(Transformation):
         self._pipeline: "sigma.processing.pipeline.ProcessingPipeline" = pipeline  # noqa: F821 # type: ignore
         if rule.custom_attributes.get("event_types", None):
             self.processing_item_applied(rule)
-            if isinstance(rule.custom_attributes["event_types"], list) or isinstance(rule.custom_attributes["event_types"], str):
+            if isinstance(rule.custom_attributes["event_types"], list) or isinstance(
+                rule.custom_attributes["event_types"], str
+            ):
                 rule.custom_attributes["event_types"] = set([rule.custom_attributes["event_types"]])
         else:
             rule.custom_attributes["event_types"] = set()

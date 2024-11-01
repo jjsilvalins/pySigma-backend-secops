@@ -316,4 +316,3 @@ def test_hash_field_common_field_mappings(secops_pipeline):
     )
     assert len(rule.detection.detections["selection_algos"].detection_items) == 3
     assert len(rule.detection.detections["selection_hashes"].detection_items) == 1
-    

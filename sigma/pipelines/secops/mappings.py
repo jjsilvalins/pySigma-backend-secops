@@ -39,7 +39,7 @@ def get_field_mappings() -> Dict[str, Dict[str, str]]:
             "sha1": "hash",
             "sha256": "hash",
             "sha512": "hash",
-            "imphash": "hash"
+            "imphash": "hash",
         },
         "process": {
             "CommandLine": "target.process.command_line",

@@ -333,7 +333,7 @@ def test_secops_cmdline_filters(secops_backend: SecOpsBackend):
             """
             )
         )[0]
-        == 'target.process.file.full_path = /\\\\netsh\\.exe$/ nocase AND target.process.command_line = / firewall / nocase AND target.process.command_line = / add / nocase AND (NOT (target.process.command_line = /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files \\(x86\\)\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any|advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase))'
+        == 'target.process.file.full_path = /\\\\netsh\\.exe$/ nocase AND target.process.command_line = / firewall / nocase AND target.process.command_line = / add / nocase AND (NOT (target.process.command_line = /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files \\(x86\\)\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase OR target.process.command_line = /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase))'
     )
 
 
@@ -410,5 +410,5 @@ level: medium
     """
             )
         )[0]
-        == 'target.process.command_line = /devtunnel/ nocase OR target.process.file.full_path = /\\\\devtunnel\\.exe$/ nocase AND (NOT (principal.process.file.full_path = /\\\\Teams\\.exe|\\\\devenv\\.exe|\\\\git|Code Helper \\(Plugin\\)|GitHub Desktop Helper \\(Renderer\\)/ nocase))'
+        == "target.process.command_line = /devtunnel/ nocase OR target.process.file.full_path = /\\\\devtunnel\\.exe$/ nocase AND (NOT (principal.process.file.full_path = /\\\\Teams\\.exe/ nocase OR principal.process.file.full_path = /\\\\devenv\\.exe/ nocase OR principal.process.file.full_path = /\\\\git/ nocase OR principal.process.file.full_path = /Code Helper \\(Plugin\\)/ nocase OR principal.process.file.full_path = /GitHub Desktop Helper \\(Renderer\\)/ nocase))"
     )
