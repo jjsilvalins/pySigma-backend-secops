@@ -196,7 +196,7 @@ def test_secops_negation_basic(secops_backend: SecOpsBackend):
             )
         )
         == [
-            'target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = "this" nocase AND (NOT target.process.command_line = "notthis" nocase)'
+            'target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = "this" nocase AND (target.process.command_line != "notthis" nocase)'
         ]
     )
 
@@ -225,7 +225,7 @@ def test_secops_negation_contains(secops_backend: SecOpsBackend):
             )
         )
         == [
-            "target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = /this/ nocase AND (NOT target.process.command_line = /notthis/ nocase)"
+            "target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = /this/ nocase AND (target.process.command_line != /notthis/ nocase)"
         ]
     )
 
@@ -333,7 +333,7 @@ def test_secops_cmdline_filters(secops_backend: SecOpsBackend):
             """
             )
         )[0]
-        == 'target.process.file.full_path = /\\\\netsh\\.exe$/ nocase AND target.process.command_line = / firewall / nocase AND target.process.command_line = / add / nocase AND (NOT (target.process.command_line = /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files \\(x86\\)\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase OR target.process.command_line = /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase))'
+        == 'target.process.file.full_path = /\\\\netsh\\.exe$/ nocase AND target.process.command_line = / firewall / nocase AND target.process.command_line = / add / nocase AND ((target.process.command_line != /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files \\(x86\\)\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase AND target.process.command_line != /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase))'
     )
 
 
@@ -410,5 +410,58 @@ level: medium
     """
             )
         )[0]
-        == "target.process.command_line = /devtunnel/ nocase OR target.process.file.full_path = /\\\\devtunnel\\.exe$/ nocase AND (NOT (principal.process.file.full_path = /\\\\Teams\\.exe/ nocase OR principal.process.file.full_path = /\\\\devenv\\.exe/ nocase OR principal.process.file.full_path = /\\\\git/ nocase OR principal.process.file.full_path = /Code Helper \\(Plugin\\)/ nocase OR principal.process.file.full_path = /GitHub Desktop Helper \\(Renderer\\)/ nocase))"
+        == "target.process.command_line = /devtunnel/ nocase OR target.process.file.full_path = /\\\\devtunnel\\.exe$/ nocase AND ((principal.process.file.full_path != /\\\\Teams\\.exe/ nocase AND principal.process.file.full_path != /\\\\devenv\\.exe/ nocase AND principal.process.file.full_path != /\\\\git/ nocase AND principal.process.file.full_path != /Code Helper \\(Plugin\\)/ nocase AND principal.process.file.full_path != /GitHub Desktop Helper \\(Renderer\\)/ nocase))"
+    )
+
+
+def test_secops_or_filtering(secops_backend: SecOpsBackend):
+    assert (
+        secops_backend.convert_rule(
+            SigmaRule.from_yaml(
+                r"""
+title: Exports Registry Key To a File
+id: f0e53e89-8d22-46ea-9db5-9d4796ee2f8a
+related:
+    - id: 82880171-b475-4201-b811-e9c826cd5eaa
+      type: similar
+status: test
+description: Detects the export of the target Registry key to a file.
+references:
+    - https://lolbas-project.github.io/lolbas/Binaries/Regedit/
+    - https://gist.github.com/api0cradle/cdd2d0d0ec9abb686f0e89306e277b8f
+author: Oddvar Moe, Sander Wiebing, oscd.community
+date: 2020-10-07
+modified: 2024-03-13
+tags:
+    - attack.exfiltration
+    - attack.t1012
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_img:
+        - Image|endswith: '\regedit.exe'
+        - OriginalFileName: 'REGEDIT.EXE'
+    selection_cli:
+        CommandLine|contains: ' -E '
+    filter_1:   # filters to avoid intersection with critical keys rule
+        CommandLine|contains:
+            - 'hklm'
+            - 'hkey_local_machine'
+    filter_2:
+        CommandLine|endswith:
+            - '\system'
+            - '\sam'
+            - '\security'
+    condition: all of selection_* and not 1 of filter_*
+fields:
+    - ParentImage
+    - CommandLine
+falsepositives:
+    - Legitimate export of keys
+level: low
+                """
+            )
+        )[0]
+        == 'target.process.file.full_path = /\\\\regedit\\.exe$/ nocase OR target.process.file.names = "REGEDIT.EXE" nocase AND target.process.command_line = / -E / nocase AND ((target.process.command_line != /hklm/ nocase AND target.process.command_line != /hkey_local_machine/ nocase) OR (target.process.command_line != /\\\\system/ nocase AND target.process.command_line != /\\\\sam/ nocase AND target.process.command_line != /\\\\security/ nocase))'
     )
