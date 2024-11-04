@@ -49,6 +49,7 @@ class SecOpsBackend(TextQueryBackend):
     - Forward slashes are used to denote regex in a UDM search, so we have to escape them when they are part of a string.
     - UDM search values are case-sensitive, so we have to add the nocase operator when necessary.
     - In a NOT operation, UDM search will match on the first NOT condition and ignore the rest, so we have to split NOT IN regex into multiple conditions.
+    - NOT appears to give us inconsistent results when compared to !=, so we have to use != instead of NOT.
     """
 
     name: ClassVar[str] = "Google SecOps UDM backend"
