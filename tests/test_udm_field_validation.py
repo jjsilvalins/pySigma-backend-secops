@@ -44,13 +44,34 @@ def test_is_valid_udm_field_value(udm_schema):
 
 
 def test_check_value_type():
+    """Test value type checking with various inputs"""
+    # Test string values
     assert check_value_type("test", "string")
+    assert not check_value_type(123, "string")
+
+    # Test integer values
     assert check_value_type(123, "integer")
-    assert check_value_type("123", "integer")
+    assert check_value_type("123", "integer")  # String that can be converted
+    assert not check_value_type("not a number", "integer")
+
+    # Test number values
+    assert check_value_type(123.45, "number")
+    assert check_value_type(123, "number")  # Integers are valid numbers
+
+    # Test boolean values
     assert check_value_type(True, "boolean")
+    assert check_value_type(False, "boolean")
     assert check_value_type("true", "boolean")
-    assert check_value_type(["item1", "item2"], "list")
-    assert check_value_type("unknown", "unknown_type")
+    assert check_value_type("false", "boolean")
+    assert not check_value_type("not a boolean", "boolean")
+
+    # Test array/list values
+    assert check_value_type(["test"], "array")
+    assert check_value_type([], "array")
+
+    # Test object/dict values
+    assert check_value_type({"key": "value"}, "object")
+    assert check_value_type({}, "object")
 
 
 def test_is_valid_udm_field_edge_cases(udm_schema):
@@ -234,3 +255,15 @@ def test_common_field_mappings_validity(udm_schema):
         assert is_valid_udm_field(
             udm_field, udm_schema
         ), f"Invalid UDM field '{udm_field}' for Sigma field '{sigma_field}' in event type 'common'"
+
+
+def test_field_validation_edge_cases(udm_schema):
+    # Test nested fields
+    assert is_valid_udm_field("target.process.file.full_path", udm_schema)
+    assert not is_valid_udm_field("target.invalid.path", udm_schema)
+
+    # Test field with dots in name
+    assert not is_valid_udm_field("target.process.file..path", udm_schema)
+
+    # Test non-existent top-level field
+    assert not is_valid_udm_field("nonexistent.field", udm_schema)
