@@ -307,13 +307,13 @@ class SecOpsBackend(TextQueryBackend):
             else:
                 joiner = self.token_separator + self.or_token + self.token_separator
 
-            return joiner.join(
+            converted = joiner.join(
                 (
                     converted
                     for converted in (
                         (
                             self.convert_condition(arg, state, parent_cond=cond.parent)
-                            if self.compare_precedence(cond, arg) or negation  # Don't group NOT conditions
+                            if self.compare_precedence(cond, arg) or negation
                             else self.convert_condition_group(arg, state)
                         )
                         for arg in cond.args
@@ -321,6 +321,13 @@ class SecOpsBackend(TextQueryBackend):
                     if converted is not None and not isinstance(converted, DeferredQueryExpression)
                 )
             )
+
+            # Don't group OR conditions if they do not have a parent, i.e. we are at te root level of a detection
+            # See backend test `test_secops_or_expression_parens` for example
+            if cond.parent is None:
+                return converted
+            return self.group_expression.format(expr=converted)
+
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'or' not supported by the backend")
 
@@ -335,20 +342,25 @@ class SecOpsBackend(TextQueryBackend):
                 joiner = self.and_token
             else:
                 joiner = self.token_separator + self.and_token + self.token_separator
-            return joiner.join(
-                (
-                    converted
-                    for converted in (
-                        (
-                            self.convert_condition(arg, state, parent_cond=cond.parent)
-                            if self.compare_precedence(cond, arg) or negation  # Don't group NOT conditions
-                            else self.convert_condition_group(arg, state)
-                        )
-                        for arg in cond.args
+
+            converted_parts = [
+                converted
+                for converted in (
+                    (
+                        self.convert_condition(arg, state, parent_cond=cond.parent)
+                        if self.compare_precedence(cond, arg)
+                        or negation
+                        or isinstance(arg, ConditionNOT)
+                        else self.convert_condition_group(arg, state)
                     )
-                    if converted is not None and not isinstance(converted, DeferredQueryExpression)
+                    for arg in cond.args
                 )
-            )
+                if converted is not None and not isinstance(converted, DeferredQueryExpression)
+            ]
+            converted = joiner.join(converted_parts)
+            return converted
+
+
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'and' not supported by the backend")
 
@@ -356,12 +368,13 @@ class SecOpsBackend(TextQueryBackend):
         """Conversion of NOT conditions."""
         arg = cond.args[0]
         try:
-
+            # If the argument is an AND condition, we don't want to add extra parentheses
+            # since the convert_condition_and method will handle the grouping
             expr = self.convert_condition(arg, state, parent_cond=cond)
-            if isinstance(expr, DeferredQueryExpression):  # negate deferred expression and pass it to parent
+
+            if isinstance(expr, DeferredQueryExpression):
                 return expr.negate()
-            else:  # convert negated expression to string
-                return expr
+            return expr
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")
 
@@ -462,7 +475,7 @@ class SecOpsBackend(TextQueryBackend):
         """
         joiner = (
             self.token_separator + self.and_token + self.token_separator
-        )  # NOT is prepended outside the whole expression, which is surrounded by parens ({expr})
+        )
         converted = [
             self.re_not_expression.format(
                 field=self.escape_and_quote_field(cond.args[0].field),

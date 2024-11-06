@@ -55,6 +55,32 @@ def test_secops_or_expression(secops_backend: SecOpsBackend):
     )
 
 
+def test_secops_or_expression_parens(secops_backend: SecOpsBackend):
+    assert (
+        secops_backend.convert_rule(
+            SigmaRule.from_yaml(
+                """
+            title: Test
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel1:
+                    CommandLine: valueA
+                    Image: cmd.exe
+                sel2:
+                    User: valueB
+                condition: 1 of sel*
+        """
+            )
+        )
+        == [
+            '(target.process.command_line = "valueA" nocase AND target.process.file.full_path = "cmd.exe" nocase) OR target.user.userid = "valueB" nocase'
+        ]
+    )
+
+
 def test_secops_and_or_expression(secops_backend: SecOpsBackend):
     assert (
         secops_backend.convert_rule(
@@ -194,10 +220,8 @@ def test_secops_negation_basic(secops_backend: SecOpsBackend):
                 condition: selection and not filter
         """
             )
-        )
-        == [
-            'target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = "this" nocase AND (target.process.command_line != "notthis" nocase)'
-        ]
+        )[0]
+        == 'target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = "this" nocase AND target.process.command_line != "notthis" nocase'
     )
 
 
@@ -225,7 +249,7 @@ def test_secops_negation_contains(secops_backend: SecOpsBackend):
             )
         )
         == [
-            "target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = /this/ nocase AND (target.process.command_line != /notthis/ nocase)"
+            "target.process.file.full_path = /\\\\process\\.exe$/ nocase AND target.process.command_line = /this/ nocase AND target.process.command_line != /notthis/ nocase"
         ]
     )
 
@@ -333,7 +357,7 @@ def test_secops_cmdline_filters(secops_backend: SecOpsBackend):
             """
             )
         )[0]
-        == 'target.process.file.full_path = /\\\\netsh\\.exe$/ nocase AND target.process.command_line = / firewall / nocase AND target.process.command_line = / add / nocase AND ((target.process.command_line != /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files \\(x86\\)\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase AND target.process.command_line != /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase))'
+        == 'target.process.file.full_path = /\\\\netsh\\.exe$/ nocase AND target.process.command_line = / firewall / nocase AND target.process.command_line = / add / nocase AND (target.process.command_line != /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files \\(x86\\)\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase AND target.process.command_line != /advfirewall firewall add rule name=Dropbox dir=in action=allow "program=.:\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox\\.exe" enable=yes profile=Any/ nocase)'
     )
 
 
@@ -410,7 +434,7 @@ level: medium
     """
             )
         )[0]
-        == "target.process.command_line = /devtunnel/ nocase OR target.process.file.full_path = /\\\\devtunnel\\.exe$/ nocase AND ((principal.process.file.full_path != /\\\\Teams\\.exe/ nocase AND principal.process.file.full_path != /\\\\devenv\\.exe/ nocase AND principal.process.file.full_path != /\\\\git/ nocase AND principal.process.file.full_path != /Code Helper \\(Plugin\\)/ nocase AND principal.process.file.full_path != /GitHub Desktop Helper \\(Renderer\\)/ nocase))"
+        == "(target.process.command_line = /devtunnel/ nocase OR target.process.file.full_path = /\\\\devtunnel\\.exe$/ nocase) AND (principal.process.file.full_path != /\\\\Teams\\.exe/ nocase AND principal.process.file.full_path != /\\\\devenv\\.exe/ nocase AND principal.process.file.full_path != /\\\\git/ nocase AND principal.process.file.full_path != /Code Helper \\(Plugin\\)/ nocase AND principal.process.file.full_path != /GitHub Desktop Helper \\(Renderer\\)/ nocase)"
     )
 
 
@@ -463,5 +487,5 @@ level: low
                 """
             )
         )[0]
-        == 'target.process.file.full_path = /\\\\regedit\\.exe$/ nocase OR target.process.file.names = "REGEDIT.EXE" nocase AND target.process.command_line = / -E / nocase AND ((target.process.command_line != /hklm/ nocase AND target.process.command_line != /hkey_local_machine/ nocase) OR (target.process.command_line != /\\\\system/ nocase AND target.process.command_line != /\\\\sam/ nocase AND target.process.command_line != /\\\\security/ nocase))'
+        == '(target.process.file.full_path = /\\\\regedit\\.exe$/ nocase OR target.process.file.names = "REGEDIT.EXE" nocase) AND target.process.command_line = / -E / nocase AND ((target.process.command_line != /hklm/ nocase AND target.process.command_line != /hkey_local_machine/ nocase) OR (target.process.command_line != /\\\\system/ nocase AND target.process.command_line != /\\\\sam/ nocase AND target.process.command_line != /\\\\security/ nocase))'
     )
